@@ -17,16 +17,12 @@ logging.basicConfig(
     ]
 )
 
-
 token = os.getenv('TOKEN')
-
 bot = TeleBot(token=token)
-
-
 
 URL = 'https://api.thecatapi.com/v1/images/search'
 
-# Код запроса к thecatapi.com и обработку ответа обернём в функцию:
+
 def get_new_image():
     try:
         response = requests.get(URL)
@@ -36,10 +32,12 @@ def get_new_image():
         new_url = 'https://api.thedogapi.com/v1/images/search'
         response = requests.get(new_url)
         response.raise_for_status()
+        logging.info("Используем альтернативный API для получения изображения собачки.")
         print("Извините, мы уже чиним картинки с котиками, вот вам пока картинка с собачкой.")
 
     response = response.json()
     random_cat = response[0].get('url')
+    logging.info(f'Получено изображение котика: {random_cat}')
     return random_cat
 
 
@@ -49,56 +47,56 @@ def get_new_kitten_image():
         'accept': 'image/*'
     }
 
-    response = requests.get(url, headers=headers)
-
-    if response.status_code == 200:
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        logging.info('Изображение котенка успешно получено.')
         return response.content
-    else:
-        print(f'Ошибка: {response.status_code}')
+    except Exception as error:
+        logging.error(f'Ошибка при получении изображения котенка: {error}')
         return None
 
 
-# Добавляем хендлер для команды /newcat:
 @bot.message_handler(commands=['newcat'])
 def new_cat(message):
     chat = message.chat
-    bot.send_photo(chat.id, get_new_image())
+    try:
+        cat_image_url = get_new_image()
+        bot.send_photo(chat.id, cat_image_url)
+        logging.info(f'Отправлено изображение котика в чат {chat.id}.')
+    except Exception as error:
+        logging.error(f'Ошибка при отправке изображения котика: {error}')
+
 
 @bot.message_handler(commands=['kitten'])
 def send_kitten(message):
     chat = message.chat
-    kitten_image = get_new_kitten_image()  # Получаем изображение котенка
+    kitten_image = get_new_kitten_image()
 
     if kitten_image:
-        # Отправляем изображение котенка
         bot.send_photo(chat.id, kitten_image)
+        logging.info(f'Отправлено изображение котенка в чат {chat.id}.')
     else:
-        # Если не удалось получить изображение, отправляем сообщение об ошибке
         bot.send_message(chat.id, "Извините, не удалось получить изображение котенка.")
+        logging.warning(f'Не удалось получить изображение котенка для чата {chat.id}.')
 
 
 @bot.message_handler(commands=['gif'])
 def send_new_kitten_gif(message):
     url = f'https://cataas.com/cat/gif?position=center&rand={time.time()}'
-    response = requests.get(url, headers={'accept': 'image/*'})
 
-    chat = message.chat@bot.message_handler(commands=['gif'])
-def send_new_kitten_gif(message):
-    url = f'https://cataas.com/cat/gif?position=center&rand={time.time()}'
-    response = requests.get(url, headers={'accept': 'image/*'})
-    chat = message.chat
+    try:
+        response = requests.get(url, headers={'accept': 'image/*'})
+        chat = message.chat
 
-    if response.status_code == 200:
-        bot.send_message(chat.id, response.url)
-    else:
-        bot.send_message(chat.id, "Извините, не удалось получить изображение котенка.")
-
-
-    if response.status_code == 200:
-        bot.send_animation(chat.id, response.url)  # Отправляем гифку
-    else:
-        bot.send_message(chat.id, "Извините, не удалось получить изображение котенка.")
-
+        if response.status_code == 200:
+            bot.send_animation(chat.id, response.url)
+            logging.info(f'Отправлена гифка котика в чат {chat.id}.')
+        else:
+            bot.send_message(chat.id, "Извините, не удалось получить изображение котенка.")
+            logging.warning(f'Ошибка получения гифки для чата {chat.id}: статус {response.status_code}')
+    except Exception as error:
+        logging.error(f'Ошибка при отправке гифки: {error}')
 
 
 @bot.message_handler(commands=['start'])
