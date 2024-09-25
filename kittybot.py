@@ -9,9 +9,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s - %(name)s',
+    handlers=[
+        logging.FileHandler('main.log'),
+        logging.StreamHandler()
+    ]
 )
+
 
 token = os.getenv('TOKEN')
 
@@ -77,7 +82,17 @@ def send_new_kitten_gif(message):
     url = f'https://cataas.com/cat/gif?position=center&rand={time.time()}'
     response = requests.get(url, headers={'accept': 'image/*'})
 
+    chat = message.chat@bot.message_handler(commands=['gif'])
+def send_new_kitten_gif(message):
+    url = f'https://cataas.com/cat/gif?position=center&rand={time.time()}'
+    response = requests.get(url, headers={'accept': 'image/*'})
     chat = message.chat
+
+    if response.status_code == 200:
+        bot.send_message(chat.id, response.url)
+    else:
+        bot.send_message(chat.id, "Извините, не удалось получить изображение котенка.")
+
 
     if response.status_code == 200:
         bot.send_animation(chat.id, response.url)  # Отправляем гифку
