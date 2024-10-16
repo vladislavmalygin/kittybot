@@ -129,7 +129,12 @@ def say_hi(message):
 
 
 def main():
-    bot.polling(none_stop=True)
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except Exception as e:
+            logging.error(f'Ошибка в основном цикле: {e}')
+            time.sleep(5)
 
 
 if __name__ == '__main__':
